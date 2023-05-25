@@ -5,6 +5,7 @@ import android.os.Bundle
 import com.dicoding.intermediate.media.myplayer.databinding.ActivityMainBinding
 import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.MediaItem
+import com.google.android.exoplayer2.util.Util
 
 class MainActivity : AppCompatActivity() {
 
@@ -17,17 +18,56 @@ class MainActivity : AppCompatActivity() {
         ActivityMainBinding.inflate(layoutInflater)
     }
 
+    private var player: ExoPlayer? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(viewBinding.root)
+    }
 
-        val player = ExoPlayer.Builder(this).build()
-        viewBinding.videoView.player = player
+    override fun onStart() {
+        super.onStart()
+        if (Util.SDK_INT > 23) {
+            initializePlayer()
+        }
+    }
 
+    override fun onResume() {
+        super.onResume()
+        if (Util.SDK_INT <= 23 && player == null) {
+            initializePlayer()
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        if (Util.SDK_INT <= 23) {
+            releasePlayer()
+        }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        if (Util.SDK_INT > 23) {
+            releasePlayer()
+        }
+    }
+
+    private fun initializePlayer() {
         val mediaItem = MediaItem.fromUri(URL_VIDEO_DICODING)
         val anotherMediaItem = MediaItem.fromUri(URL_AUDIO)
-        player.setMediaItem(mediaItem)
-        player.addMediaItem(anotherMediaItem)
-        player.prepare()
+
+        player = ExoPlayer.Builder(this).build().also { exoPlayer ->
+            viewBinding.videoView.player = exoPlayer
+            exoPlayer.setMediaItem(mediaItem)
+            exoPlayer.addMediaItem(anotherMediaItem)
+            exoPlayer.prepare()
+        }
     }
+
+    private fun releasePlayer() {
+        player?.release()
+        player = null
+    }
+
 }
